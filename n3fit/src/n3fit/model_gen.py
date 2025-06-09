@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
+from torch.nn.modules import activation
 
 from n3fit.backends import (
     NN_LAYER_ALL_REPLICAS,
@@ -608,18 +609,35 @@ def pdfNN_layer_generator(
         large_x=not subtract_one,
     )
 
-    nn_replicas = generate_nn(
-        layer_type=layer_type,
-        nodes_in=nn_input_dimensions,
-        nodes=nodes,
-        activations=activations,
-        initializer_name=initializer_name,
-        replica_seeds=seed,
-        dropout=dropout,
-        regularizer=regularizer,
-        regularizer_args=regularizer_args,
-        last_layer_nodes=last_layer_nodes,
-    )
+    if layer_type == "tensor_network":
+        import keras
+        from keras import layers
+        from tn4ai.layers.keras.tucker import TuckerDense
+
+        nn_replicas = keras.Sequential(
+            [
+                layers.Dense(25, input_shape=(nn_input_dimensions,)),
+                layers.Activation(activation),
+                TuckerDense(25, 20, in_ranks=(2,), out_ranks=(2, 2)),
+                layers.Activation(activation),
+                TuckerDense(20, nodes, in_ranks=(2, 2), out_ranks=(2,)),
+                layers.Activation(activation),
+                layers.Dense(nodes),
+            ]
+        )
+    else:
+        nn_replicas = generate_nn(
+            layer_type=layer_type,
+            nodes_in=nn_input_dimensions,
+            nodes=nodes,
+            activations=activations,
+            initializer_name=initializer_name,
+            replica_seeds=seed,
+            dropout=dropout,
+            regularizer=regularizer,
+            regularizer_args=regularizer_args,
+            last_layer_nodes=last_layer_nodes,
+        )
 
     # The NN subtracted by NN(1), if applicable
     def nn_subtracted(x):
