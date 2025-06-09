@@ -788,6 +788,27 @@ def generate_nn(
                 )
             return layers
 
+    elif layer_type == "tucker_dense":
+
+        def initializer_generator(seed, i_layer):
+            seed += i_layer
+            return MetaLayer.select_initializer(initializer_name, seed=int(seed))
+
+        def layer_generator(i_layer, nodes_out, activation):
+            layers = []
+            for replica_seed in replica_seeds:
+                layers.append(
+                    base_layer_selector(
+                        layer_type,
+                        indim=nodes_in,
+                        outdim=nodes_out,
+                        # kernel_initializer=initializer_generator(replica_seed, i_layer),
+                        activation=activation,
+                        # regularizer=reg,
+                    )
+                )
+            return layers
+
     else:
         raise ValueError(f"{layer_type=} not recognized during model generation")
 
