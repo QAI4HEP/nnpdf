@@ -1,30 +1,33 @@
 """
-    This module defines custom base layers to be used by the n3fit
-    Neural Network.
-    These layers can use the keras standard set of activation function
-    or implement their own.
+This module defines custom base layers to be used by the n3fit
+Neural Network.
+These layers can use the keras standard set of activation function
+or implement their own.
 
-    For a layer to be used by n3fit it should be contained in the `layers` dictionary defined below.
-    This dictionary has the following structure:
+For a layer to be used by n3fit it should be contained in the `layers` dictionary defined below.
+This dictionary has the following structure:
 
-        'name of the layer' : ( Layer_class, {dictionary of arguments: defaults} )
+    'name of the layer' : ( Layer_class, {dictionary of arguments: defaults} )
 
-    In order to add custom activation functions, they must be added to
-    the `custom_activations` dictionary with the following structure:
+In order to add custom activation functions, they must be added to
+the `custom_activations` dictionary with the following structure:
 
-        'name of the activation' : function
+    'name of the activation' : function
 
-    The names of the layer and the activation function are the ones to be used in the n3fit runcard.
+The names of the layer and the activation function are the ones to be used in the n3fit runcard.
 """
 
 from keras.layers import Dense as KerasDense
 from keras.layers import Dropout, Lambda
 from keras.layers import Input  # pylint: disable=unused-import
-from keras.layers import LSTM, Concatenate
+from keras.layers import LSTM, Activation, Concatenate
 from keras.regularizers import l1_l2
+from tn4ai.layers.keras.tucker import TuckerDense as KerasTuckerDense
+from torch.nn.modules import activation
 
 from . import operations as ops
 from .MetaLayer import MetaLayer
+
 
 # Custom activation functions
 def square_activation(x):
@@ -76,6 +79,18 @@ def LSTM_modified(**kwargs):
 
 class Dense(KerasDense, MetaLayer):
     pass
+
+
+class TuckerDense(KerasTuckerDense, MetaLayer):
+
+    activation: str = "tanh"
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
+        self.activation = Activation(self.activation)
+
+    def call(self, x):
+        return self.activation(KerasTuckerDense.call(self, x))
 
 
 def dense_per_flavour(basis_size=8, kernel_initializer="glorot_normal", **dense_kwargs):
@@ -153,6 +168,18 @@ layers = {
     ),
     "dropout": (Dropout, {"rate": 0.0}),
     "concatenate": (Concatenate, {}),
+    "tucker_dense": (
+        TuckerDense,
+        {
+            # "kernel_initializer": "glorot_normal",
+            "indim": 4,
+            "outdim": 4,
+            "in_ranks": (2, 2),
+            "out_ranks": None,
+            "activation": "sigmoid",
+            # "kernel_regularizer": None,
+        },
+    ),
 }
 
 regularizers = {'l1_l2': (l1_l2, {'l1': 0.0, 'l2': 0.0})}
