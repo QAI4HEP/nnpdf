@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
-from torch.nn.modules import activation
 
 from n3fit.backends import (
     NN_LAYER_ALL_REPLICAS,
