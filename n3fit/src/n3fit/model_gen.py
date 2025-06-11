@@ -578,6 +578,7 @@ def pdfNN_layer_generator(
         layer_x_eq_1 = op.numpy_to_input(np.array(input_x_eq_1).reshape(1, 1), name="x_eq_1")
         model_input["layer_x_eq_1"] = layer_x_eq_1
 
+    breakpoint()
     # the layer that multiplies the NN output by the preprocessing factor
     apply_preprocessing_factor = Lambda(op.op_multiply, name="prefactor_times_NN")
 
@@ -608,35 +609,18 @@ def pdfNN_layer_generator(
         large_x=not subtract_one,
     )
 
-    if layer_type == "tensor_network":
-        import keras
-        from keras import layers
-        from tn4ai.layers.keras.tucker import TuckerDense
-
-        nn_replicas = keras.Sequential(
-            [
-                layers.Dense(25, input_shape=(nn_input_dimensions,)),
-                layers.Activation(activation),
-                TuckerDense(25, 20, in_ranks=(2,), out_ranks=(2, 2)),
-                layers.Activation(activation),
-                TuckerDense(20, nodes, in_ranks=(2, 2), out_ranks=(2,)),
-                layers.Activation(activation),
-                layers.Dense(nodes),
-            ]
-        )
-    else:
-        nn_replicas = generate_nn(
-            layer_type=layer_type,
-            nodes_in=nn_input_dimensions,
-            nodes=nodes,
-            activations=activations,
-            initializer_name=initializer_name,
-            replica_seeds=seed,
-            dropout=dropout,
-            regularizer=regularizer,
-            regularizer_args=regularizer_args,
-            last_layer_nodes=last_layer_nodes,
-        )
+    nn_replicas = generate_nn(
+        layer_type=layer_type,
+        nodes_in=nn_input_dimensions,
+        nodes=nodes,
+        activations=activations,
+        initializer_name=initializer_name,
+        replica_seeds=seed,
+        dropout=dropout,
+        regularizer=regularizer,
+        regularizer_args=regularizer_args,
+        last_layer_nodes=last_layer_nodes,
+    )
 
     # The NN subtracted by NN(1), if applicable
     def nn_subtracted(x):
@@ -661,6 +645,7 @@ def pdfNN_layer_generator(
         # Compute the preprocessing factor
         preprocessing_factors_x = compute_preprocessing_factor(x_original)
 
+        breakpoint()
         # Apply the preprocessing factor
         pref_NNs_x = apply_preprocessing_factor([preprocessing_factors_x, NNs_x])
 
@@ -804,6 +789,31 @@ def generate_nn(
                     )
                 )
             return layers
+
+    elif layer_type == "tensor_network":
+        import keras
+        from keras import layers
+        from tn4ai.layers.keras.tucker import TuckerDense
+        
+        tn = keras.Sequential(
+            [
+                layers.Dense(25, input_shape=(nodes_in,)),
+                layers.Activation(activations[0]),
+                TuckerDense(25, 20, in_ranks=(2,), out_ranks=(2, 2)),
+                layers.Activation(activations[0]),
+                TuckerDense(20, nodes[-1], in_ranks=(2, 2), out_ranks=(2,)),
+                layers.Activation(activations[0]),
+                layers.Dense(nodes[-1]),
+            ]
+        )
+        breakpoint()
+        pdf = tn(x_input)
+        m = MetaModel({'NN_input': x_input}, pdf, name=f"{NN_PREFIX}_0")
+        pdfs = [
+        m(x_input)
+        ]
+        model = MetaModel({'NN_input': x_input}, pdfs, name=NN_LAYER_ALL_REPLICAS)
+        return model
 
     else:
         raise ValueError(f"{layer_type=} not recognized during model generation")
