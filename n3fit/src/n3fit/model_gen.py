@@ -788,42 +788,69 @@ def generate_nn(
                 )
             return layers
 
+    elif layer_type == "tensor_network":
+        import keras
+        from keras import layers
+        from tn4ai.layers.keras.tucker import TuckerDense
+
+        tn_model = keras.Sequential(
+            [
+                x_input,
+                Lambda(lambda xi: keras.ops.squeeze(xi, axis=0), input_shape=(1, None, 2)),
+                layers.Dense(25, input_shape=(2,)),
+                layers.Activation(activations[0]),
+                TuckerDense(25, 20, in_ranks=(2,), out_ranks=(2, 2)),
+                layers.Activation(activations[0]),
+                TuckerDense(20, nodes[-1], in_ranks=(2, 2), out_ranks=(2,)),
+                layers.Activation(activations[0]),
+                layers.Dense(nodes[-1]),
+                Lambda(lambda xi: keras.ops.expand_dims(xi, axis=0)),
+            ],
+            name=f"{NN_PREFIX}_1",
+        )
+        # At the moment there's only one replica
+        pdfs = [tn_model(x_input)]
     else:
         raise ValueError(f"{layer_type=} not recognized during model generation")
 
-    # First create all the layers
-    # list_of_pdf_layers[d][r] is the layer at depth d for replica r
-    list_of_pdf_layers = []
-    for i_layer, (nodes_out, activation) in enumerate(zip(nodes_list, activations)):
-        layers = layer_generator(i_layer, nodes_out, activation)
-        list_of_pdf_layers.append(layers)
-        nodes_in = int(nodes_out)
+    # Construct the full network if (and only if) we are in a dense or dense_per_flavour
+    if layer_type in ("dense", "dense_per_flavour"):
 
-    # add dropout as second to last layer
-    if dropout > 0:
-        dropout_layer = base_layer_selector("dropout", rate=dropout)
-        list_of_pdf_layers.insert(-2, dropout_layer)
+        # First create all the layers
+        # list_of_pdf_layers[d][r] is the layer at depth d for replica r
+        list_of_pdf_layers = []
+        for i_layer, (nodes_out, activation) in enumerate(zip(nodes_list, activations)):
+            layers = layer_generator(i_layer, nodes_out, activation)
+            list_of_pdf_layers.append(layers)
+            nodes_in = int(nodes_out)
 
-    # In case of per flavour network, concatenate at the last layer
-    if layer_type == "dense_per_flavour":
-        concat = base_layer_selector("concatenate")
-        list_of_pdf_layers[-1] = [lambda x: concat(layer(x)) for layer in list_of_pdf_layers[-1]]
+        # add dropout as second to last layer
+        if dropout > 0:
+            dropout_layer = base_layer_selector("dropout", rate=dropout)
+            list_of_pdf_layers.insert(-2, dropout_layer)
 
-    pdfs = [layer(x_input) for layer in list_of_pdf_layers[0]]
+        # In case of per flavour network, concatenate at the last layer
+        if layer_type == "dense_per_flavour":
+            concat = base_layer_selector("concatenate")
+            list_of_pdf_layers[-1] = [
+                lambda x: concat(layer(x)) for layer in list_of_pdf_layers[-1]
+            ]
 
-    for layers in list_of_pdf_layers[1:]:
-        # Since some layers (dropout) are shared, we have to treat them separately
-        if type(layers) is list:
-            pdfs = [layer(x) for layer, x in zip(layers, pdfs)]
-        else:
-            pdfs = [layers(x) for x in pdfs]
+        pdfs = [layer(x_input) for layer in list_of_pdf_layers[0]]
 
-    # Wrap the pdfs in a MetaModel to enable getting/setting of weights later
-    pdfs = [
-        MetaModel({'NN_input': x_input}, pdf, name=f"{NN_PREFIX}_{i_replica}")(x_input)
-        for i_replica, pdf in enumerate(pdfs)
-    ]
-    pdfs = Lambda(lambda nns: op.stack(nns, axis=1), name=f"stack_replicas")(pdfs)
-    model = MetaModel({'NN_input': x_input}, pdfs, name=NN_LAYER_ALL_REPLICAS)
+        for layers in list_of_pdf_layers[1:]:
+            # Since some layers (dropout) are shared, we have to treat them separately
+            if type(layers) is list:
+                pdfs = [layer(x) for layer, x in zip(layers, pdfs)]
+            else:
+                pdfs = [layers(x) for x in pdfs]
 
+        # Wrap the pdfs in a MetaModel to enable getting/setting of weights later
+        pdfs = [
+            MetaModel({'NN_input': x_input}, pdf, name=f"{NN_PREFIX}_{i_replica}")(x_input)
+            for i_replica, pdf in enumerate(pdfs)
+        ]
+
+    all_replicas_layer = Lambda(lambda nns: op.stack(nns, axis=1), name=f"stack_replicas")(pdfs)
+    model = MetaModel({'NN_input': x_input}, all_replicas_layer, name=NN_LAYER_ALL_REPLICAS)
     return model

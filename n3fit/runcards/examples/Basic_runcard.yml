@@ -10,8 +10,8 @@ description: Basic runcard
 # sys: systematics treatment (see systypes)
 dataset_inputs:
 - {dataset: NMC_NC_NOTFIXED_EM-F2, frac: 0.75, variant: legacy_dw}
-- {dataset: SLAC_NC_NOTFIXED_D_EM-F2, frac: 0.75, variant: legacy_dw}
-- {dataset: ATLAS_Z0J_8TEV_PT-M, frac: 0.75, cfac: [], variant: legacy_10}
+  #- {dataset: SLAC_NC_NOTFIXED_D_EM-F2, frac: 0.75, variant: legacy_dw}
+  #- {dataset: ATLAS_Z0J_8TEV_PT-M, frac: 0.75, cfac: [], variant: legacy_10}
 
 ############################################################
 datacuts:
@@ -40,7 +40,7 @@ parameters: # This defines the parameter dictionary that is passed to the Model 
     initial: # the maxlambda will be used instead to compute these values per dataset
     threshold: 1e-5
   stopping_patience: 0.30 # percentage of the number of epochs
-  layer_type: 'dense'
+  layer_type: 'tensor_network'
   dropout: 0.0
   threshold_chi2: 5.0
 
@@ -69,15 +69,15 @@ fitting:
 
 ############################################################
 positivity:
-  posdatasets:
-  - {dataset: NNPDF_POS_2P24GEV_F2U, maxlambda: 1e6}        # Positivity Lagrange Multiplier
-  - {dataset: NNPDF_POS_2P24GEV_FLL-19PTS, maxlambda: 1e6}
-  - {dataset: NNPDF_POS_2P24GEV_XGL, maxlambda: 1e6}
+  posdatasets: []
+    #- {dataset: NNPDF_POS_2P24GEV_F2U, maxlambda: 1e6}        # Positivity Lagrange Multiplier
+    #- {dataset: NNPDF_POS_2P24GEV_FLL-19PTS, maxlambda: 1e6}
+    #- {dataset: NNPDF_POS_2P24GEV_XGL, maxlambda: 1e6}
 
 ############################################################
-integrability:
-  integdatasets:
-  - {dataset: NNPDF_INTEG_3GEV_XT3, maxlambda: 1e2}
+#integrability:
+  #integdatasets: 
+    #- {dataset: NNPDF_INTEG_3GEV_XT3, maxlambda: 1e2}
 
 # Apply a cut to a dataset or process type, in this case to the positivity dataset `NNPDF_POS_2P24GEV_XGL` which has process type: POS_XPDF
 added_filter_rules:
@@ -85,12 +85,14 @@ added_filter_rules:
       rule: "x > 0.1"
 
 ############################################################
-debug: True
+debug: False
 maxcores: 8
 
-tensorboard:
-  weight_freq: 100
-  profiling: False
+  #tensorboard:
+  #weight_freq: 100
+  #profiling: False
 
-save: 'weights.h5'
+  #save: 'weights.h5'
 # load: '/path/to/weights.h5/file'
+
+parallel_models: False
