@@ -435,5 +435,6 @@ Session.vim
 # auto-generated tag files
 tags
 
+Basic_runcard*
 
 # End of https://www.gitignore.io/api/c++,latex,cmake,python,jupyternotebook,qtcreator,vim
