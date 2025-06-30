@@ -806,7 +806,7 @@ def generate_nn(
                 layers.Dense(nodes[-1]),
                 Lambda(lambda xi: keras.ops.expand_dims(xi, axis=0)),
             ],
-            name=f"{NN_PREFIX}_1",
+            name=f"{NN_PREFIX}_0",
         )
         # At the moment there's only one replica
         pdfs = [tn_model(x_input)]
