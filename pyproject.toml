@@ -62,7 +62,8 @@ python = ">=3.9"
 matplotlib = "^3.9"
 pineappl = "^1.0.0"
 pandas = "*"
-numpy = "*"
+# tn4ai (private package) requires this version of numpy
+numpy = "^2.0.0"
 "ruamel.yaml" = "*"
 validobj = "*"
 prompt_toolkit = "*"
@@ -72,7 +73,8 @@ packaging = "*"
 psutil = "*"
 tensorflow = "*"
 keras = "^3.1"
-eko = "^0.15.1"
+# the eko from master is not compatible with numpy > 2
+eko = { git = "https://github.com/NNPDF/eko", branch = "support_3point13" }
 joblib = "*"
 # Hyperopt
 hyperopt = "*"

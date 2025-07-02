@@ -8,8 +8,12 @@ from scipy.integrate import trapezoid
 from scipy.interpolate import interp1d
 import yaml
 
-from eko import basis_rotation
-from eko.io import EKO
+try:
+    from eko import basis_rotation
+    from eko.io import EKO
+except Exception:
+    basis_rotation = None
+    EKO = None
 from n3fit.io.writer import XGRID
 from validphys.n3fit_data import replica_luxseed
 

@@ -135,7 +135,7 @@ def check_initializer(initializer):
 def check_layer_type_implemented(parameters):
     """Checks whether the layer_type is implemented"""
     layer_type = parameters.get("layer_type")
-    implemented_types = ["dense", "dense_per_flavour"]
+    implemented_types = ["dense", "dense_per_flavour", "tensor_network"]
     if layer_type not in implemented_types:
         raise CheckError(
             f"Layer type {layer_type} not implemented, must be one of {implemented_types}"
@@ -431,7 +431,7 @@ def check_consistent_parallel(parameters, parallel_models):
     """
     if not parallel_models:
         return
-    if parameters.get("layer_type") not in ("dense"):
+    if parameters.get("layer_type") not in ("dense", "tensor_network"):
         raise CheckError(
             "Parallelization has only been tested with layer_type=='dense', set `parallel_models: false`"
         )

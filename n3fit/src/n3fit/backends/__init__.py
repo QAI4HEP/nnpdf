@@ -1,3 +1,9 @@
+from keras import Sequential as KerasSequential
+from keras.layers import Activation as KerasActivation
+
+# Necessary for the Tensor Network
+from tn4ai.layers.keras.tucker import TuckerDense
+
 from n3fit.backends.keras_backend import callbacks, constraints, operations
 from n3fit.backends.keras_backend.MetaLayer import MetaLayer
 from n3fit.backends.keras_backend.MetaModel import (
@@ -9,6 +15,7 @@ from n3fit.backends.keras_backend.MetaModel import (
 from n3fit.backends.keras_backend.base_layers import (
     Concatenate,
     Input,
+    KerasDense,
     Lambda,
     base_layer_selector,
     regularizer_selector,
