@@ -27,9 +27,13 @@ from n3fit.backends import (
     NN_PREFIX,
     PREPROCESSING_LAYER_ALL_REPLICAS,
     Input,
+    KerasActivation,
+    KerasDense,
+    KerasSequential,
     Lambda,
     MetaLayer,
     MetaModel,
+    TuckerDense,
     base_layer_selector,
 )
 from n3fit.backends import operations as op
@@ -871,6 +875,31 @@ def _generate_nn(
                 activation=activation,
                 regularizer=reg,
             )
+
+    elif architecture == "tensor_network":
+        # When in "tensor_network" mode
+        # the layers as such that:
+        #
+        # 1. First layer is a Dense
+        # 2. Second and third layer are TuckerDense
+        # 4. Then a linear dense nodes_out to nodes_out is generated
+
+        layer_map = [
+            Lambda(lambda xi: op.squeeze(xi, axis=0), input_shape=(1, None, 2)),
+            KerasDense(nodes[0], input_shape=(2,)),
+            KerasActivation(activations[0]),
+            TuckerDense(nodes[0], nodes[1], in_ranks=(2,), out_ranks=(2, 2)),
+            KerasActivation(activations[1]),
+            TuckerDense(nodes[1], nodes[2], in_ranks=(2, 2), out_ranks=(2,)),
+            KerasActivation(activations[2]),
+            KerasDense(nodes[3], activation=activations[3]),
+            Lambda(lambda xi: op.expand_dims(xi, axis=0)),
+        ]
+
+        nodes = activations = [None] * len(layer_map)
+
+        def layer_generator(i_layer, *_args):
+            return layer_map[i_layer]
 
     else:
         raise ValueError(f"{architecture=} not recognized during model generation")

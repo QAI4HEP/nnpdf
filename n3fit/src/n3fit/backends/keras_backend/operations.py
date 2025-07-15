@@ -1,29 +1,29 @@
 """
-    This module contains the list of operations that can be used within the
-    ``call`` method of the ``n3fit`` layers as well as operations that can
-    act on layers.
+This module contains the list of operations that can be used within the
+``call`` method of the ``n3fit`` layers as well as operations that can
+act on layers.
 
-    This includes an implementation of the NNPDF operations on fktable in the keras
-    language (with the mapping ``c_to_py_fun``) into Keras ``Lambda`` layers.
+This includes an implementation of the NNPDF operations on fktable in the keras
+language (with the mapping ``c_to_py_fun``) into Keras ``Lambda`` layers.
 
-    The rest of the operations in this module are divided into four categories:
-    numpy to tensor:
-        Operations that take a numpy array and return a tensorflow tensor
-    layer to layer:
-        Operations that take a layer and return another layer
-    tensor to tensor:
-        Operations that take a tensor and return a tensor
-    layer generation:
-        Instanciate a layer to be applied by the calling function
+The rest of the operations in this module are divided into four categories:
+numpy to tensor:
+    Operations that take a numpy array and return a tensorflow tensor
+layer to layer:
+    Operations that take a layer and return another layer
+tensor to tensor:
+    Operations that take a tensor and return a tensor
+layer generation:
+    Instanciate a layer to be applied by the calling function
 
-    Most of the operations in this module are just aliases to the backend
-    (Keras in this case) so that, when implementing new backends, it is clear
-    which operations may need to be overwritten.
-    For a few selected operations, a more complicated wrapper to e.g., make
-    them into layers or apply some default, is included.
+Most of the operations in this module are just aliases to the backend
+(Keras in this case) so that, when implementing new backends, it is clear
+which operations may need to be overwritten.
+For a few selected operations, a more complicated wrapper to e.g., make
+them into layers or apply some default, is included.
 
-    Note that tensor operations can also be applied to layers as the output of a layer is a tensor
-    equally operations are automatically converted to layers when used as such.
+Note that tensor operations can also be applied to layers as the output of a layer is a tensor
+equally operations are automatically converted to layers when used as such.
 """
 
 from keras import backend as K
@@ -48,6 +48,7 @@ from keras.ops import (
     reshape,
     repeat,
     split,
+    squeeze,
     sum,
     tanh,
     transpose,
